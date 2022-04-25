@@ -1,0 +1,114 @@
+---
+title: "Who We Serve"
+author: "Alison Turner"
+date: "4/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+
+```{r setup2}
+#devtools::install_github("arazdow/tnum/tnum")
+
+library(tnum)
+library(jsonlite)
+library(tidyverse)
+
+library(lubridate)
+
+# login to tnum server
+creds <- "alison@metricstogether.com:brushfire"
+ip <- "metrics.truenum.com:8080"
+tnum.authorize(ip=ip,creds=creds)
+
+#pull corrections data from TNUM server
+
+#data1 <- tnum.query(query="prop:Date-of-Birth or prop:Race or prop:Sentence-Years or prop:IDOC-number",max=120001)
+#data2 <- tnum.query(query="prop:Sentence-Date or prop:Holding-Offense or prop:",max=120001)
+data_tnum_og <- tnum.query(query="subj:*",max=20001)
+#data_tnum <- data_tnum_og[-1,]
+
+data <- data_tnum %>% select(property,value)
+
+#structure into a workable dataframe
+
+# function to rewrite wrong birthdates (lubridate)
+date_redo <- function(x, year=2022){
+  m <- year(x)
+  n <- year(x) %% 100
+  year(x) <- ifelse(m-year > 0, 1900+n, m)
+  x
+}
+
+#clean up data that are notes 
+#data <- data %>% filter(property, -"text:heading:full")
+
+#note for complete cases df %>% filter(complete.cases(.))
+
+
+d <- data %>% filter(complete.cases(.)) %>% pivot_wider(names_from = property, values_from=value) %>% unnest(cols = c(unique(data_tnum$property)))
+
+d$`Date-of-Birth` <- dmy(d$`Date-of-Birth`)
+
+d$`Date-of-Birth` <- date_redo(d$`Date-of-Birth`)
+#d$`Sentence-Years` <- is.numeric(d$`Sentence-Years`)
+d$yeartrans <- ifelse(grepl("^[[:digit:]]+$",d$`Sentence-Years`),d$`Sentence-Years`,NA)
+d$yeartrans <- as.numeric(d$yeartrans)
+d <- d %>% mutate(age=year(Sys.Date())-year(`Date-of-Birth`),life=ifelse(`Sentence-Years`=="LIFE",1,(ifelse(yeartrans>49,"De Facto",0))),sdp=ifelse(`Sentence-Years`=="SDP",1,0)) %>%
+  select(-yeartrans)
+
+
+
+library(ggplot2)
+
+ggplot(d) +
+ aes(x = life, fill = Race) +
+ geom_bar() +
+ scale_fill_hue(direction = 1) +
+ theme_minimal()
+#tnum.getAllProperties()
+
+
+## add a new property to TNUM
+# wrte a loop that creates a tnum that looks like the other ones 
+# Example subject:"IL-DOC/prison:Dixon/A00147:inmate:county:Jasper"
+d_test <- d %>% select(`Parent-Institution`,`IDOC-number`,`Sentencing-County`,age)
+
+
+tnum.ingestDataFrame(df=d_test,subjectRoot = "IL-DOC/", subjectTerms = list(c("prison:","Parent-Institution"),c("/","IDOC-number"),c(":inmate:county:","Sentencing-County")),tag = "test",outfile = choose.files())
+
+
+
+# need prison name, inmate #, county
+#constant property
+
+
+
+```
+
+
+
+Overwhelmingly, the people in Illinois serving life and de facto life for offenses that occurred before the age of 26 are young Black men from Cook and its neighboring counties. Figure 1 shows the distribution of sentences by race, compared with Illinois demographics.
+
+Eighty-three of Illinois’s 102 counties have sentenced at least one person to life or de facto life (among the people still serving these sentences) for an offense that occurred before the person’s 26th birthday. Sixty-five percent (1,706) of the people currently serving life or de facto life for crimes that occurred before they turned 26 are from Cook County. 
+
+About 96 percent of youth life and de facto life sentences are for homicide-related offenses. 
+
+Sixty-eight percent (1,790) of the people serving life or de facto life for crimes that occurred in their youth are Black.
+
+
+```{r EDA, echo=FALSE}
+
+ggplot(d) +
+  aes(x = age, y = `Sentence-Years`) +
+  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
+  theme_minimal() +
+  facet_wrap(vars(Race))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
