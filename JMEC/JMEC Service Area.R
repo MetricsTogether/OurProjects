@@ -22,6 +22,7 @@ NM_counties <- tigris::counties(state = "New Mexico") %>%
          geoid = GEOID, name = NAME) %>% # only keep useful variables 
   st_transform(4326) # transform to the same CRS as the tiles
 
+Luna_county <- NM_counties %>% filter(name=="Luna")
 #NM_tiles <- st_join(tiles, NM_counties)
 
 # tiles_in_nm_counties <- st_join(NM_counties, tiles, left = FALSE)
@@ -35,6 +36,10 @@ test2 <- data.frame(JMEC_tiles)
 JMEC_tiles <- left_join(test2,tiles,by="quadkey")
 JMEC_tiles <- JMEC_tiles %>% select(-geometry.x)%>% mutate(avg_d_mbps=avg_d_kbps.y*0.0009765625)
 
+luna_tiles <- st_join(Luna_county,tiles)
+
+luna_tiles2 <- data.frame(luna_tiles)
+luna_tiles2 <- left_join(luna_tiles2,tiles,by="quadkey")
 
 ## prep the data
 JMEC_stats <- JMEC_tiles %>%
@@ -98,4 +103,11 @@ ggplot()+
   geom_sf(data=JMEC_tiles, mapping= aes(geometry=geometry.y,color=avg_d_mbps))+
   labs(color="Average Download Speed (mbps)")+
  # scale_color_gradientn(colours=brewer.pal(7,"YlOrBr"))+
+  theme_void()
+
+ggplot()+
+  geom_sf(data=JMEC,color="gray",fill="lightgray")+
+  geom_sf(data=luna_tiles2, mapping= aes(geometry=geometry.y,color=avg_d_kbps.y))+
+  labs(color="Average Download Speed (mbps)")+
+  # scale_color_gradientn(colours=brewer.pal(7,"YlOrBr"))+
   theme_void()

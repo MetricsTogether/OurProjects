@@ -18,7 +18,6 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tnum)
 library(jsonlite)
 library(tidyverse)
-
 library(lubridate)
 
 # login to tnum server
@@ -26,11 +25,16 @@ creds <- "alison@metricstogether.com:brushfire"
 ip <- "metrics.truenum.com:8080"
 tnum.authorize(ip=ip,creds=creds)
 
+tnum.setSpace("IL-Corrections1")
+
 #pull corrections data from TNUM server
 
 #data1 <- tnum.query(query="prop:Date-of-Birth or prop:Race or prop:Sentence-Years or prop:IDOC-number",max=120001)
 #data2 <- tnum.query(query="prop:Sentence-Date or prop:Holding-Offense or prop:",max=120001)
 data_tnum_og <- tnum.query(query="subj:*",max=20001)
+
+data_tnum_og <- data_tnum_og %>% mutate(early=str_match(data_tnum_og$subject, "/\\s*(.*?)\\:inmate")) %>% mutate(identifier=substr(early,str_length(early)-5,str_length(early))[,2])
+
 #data_tnum <- data_tnum_og[-1,]
 
 data <- data_tnum %>% select(property,value)
