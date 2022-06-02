@@ -5,17 +5,25 @@ library(lubridate)
 library(foreach)
 library(tigris)
 library(stringr)
+<<<<<<< HEAD
 library(sf)
+=======
+>>>>>>> 9ee5eaf4067fb94768bc364f8c1d5af35dd3fc9a
 
 key <- "095f223bd2d9dd69b8546222bde6c171c540da9b"
 
 
+<<<<<<< HEAD
 IDOC <- read_xls("Restore Justice/June 2017 Prison Stock.xls",skip = 5)
+=======
+IDOC <- read_xls("Restore Justice/March 2021 Prison Stock.xls",skip = 5)
+>>>>>>> 9ee5eaf4067fb94768bc364f8c1d5af35dd3fc9a
 
 
 
 IDOC$yeartrans <- ifelse(grepl("^[[:digit:]]+$",IDOC$`Sentence Years`),IDOC$`Sentence Years`,NA)
 IDOC$yeartrans <- as.numeric(IDOC$yeartrans)
+<<<<<<< HEAD
 
 #2017 requires a dob change in format
 IDOC$`Date of Birth` <- mdy(IDOC$`Date of Birth`)
@@ -29,6 +37,11 @@ IDOC <- IDOC %>% mutate(age=year(Sys.Date())-year(`Date of Birth`),
 
 
 
+=======
+IDOC <- IDOC %>% mutate(age=year(Sys.Date())-year(`Date of Birth`),life=ifelse(`Sentence Years`=="LIFE",1,(ifelse(yeartrans>49,"De Facto",0))),sdp=ifelse(`Sentence Years`=="SDP",1,0)) %>%
+  select(-yeartrans)
+
+>>>>>>> 9ee5eaf4067fb94768bc364f8c1d5af35dd3fc9a
 yeargeog <- function(year,state,vars){
   data.frame(year = year, 
              getCensus(name="acs/acs5",
@@ -89,6 +102,7 @@ acs5_race$county <- str_remove(acs5_race$county," County")
 acs5_race$total <- rowSums(acs5_race[,4:10])
 acs5_race_perc <- data.frame(acs5_race[,1:3],lapply(acs5_race[,4:10],function(x) (x/acs5_race$total)*100))
 acs5_race_perc$check <- rowSums(acs5_race_perc[,4:10])
+<<<<<<< HEAD
 15
 IL_counties <- tigris::counties(state=17) %>%
   select(county = NAME,geometry) %>% 
@@ -133,6 +147,11 @@ youthhom <- length(IDOC$life[IDOC$life %in% c("De Facto", 1) & str_detect(IDOC$`
 youthhom
 
 # Sixty-eight percent (1,790) of the people serving life or de facto life for crimes that occurred in their youth are Black.
+=======
+
+IL_counties <- tigris::counties(state=17) %>% select(NAME,geometry)
+
+>>>>>>> 9ee5eaf4067fb94768bc364f8c1d5af35dd3fc9a
 ggplot(IDOC) +
   aes(x = life, fill = Race) +
   geom_bar() +
@@ -140,5 +159,23 @@ ggplot(IDOC) +
   theme_minimal()
 
 
+<<<<<<< HEAD
+=======
+# Overwhelmingly, the people in Illinois serving life and de facto life for offenses that occurred before the age of 26 are young Black men from Cook and its neighboring counties. Figure 1 shows the distribution of sentences by race, compared with Illinois demographics.
+county_life <- IDOC[IDOC$life %in% c("De Facto", 1),]%>% group_by(`Sentencing County`,Race) %>% summarise(number=n()) %>% mutate(percent=(number/sum(number))*100)
+county_life2 <- left_join(county_life,acs5_race_perc[acs5_race_perc$year==2017,],by=c("Sentencing County"="county"))
+
+
+
+# Eighty-three of Illinois’s 102 counties have sentenced at least one person to life or de facto life (among the people still serving these sentences) for an offense that occurred before the person’s 26th birthday. Sixty-five percent (1,706) of the people currently serving life or de facto life for crimes that occurred before they turned 26 are from Cook County. 
+# 
+
+
+# About 96 percent of youth life and de facto life sentences are for homicide-related offenses. 
+length(IDOC$life[IDOC$life %in% c("De Facto", 1) & IDOC$`Holding Offense`=="Black"])/length(IDOC$life[IDOC$life %in% c("De Facto", 1)])
+
+
+# Sixty-eight percent (1,790) of the people serving life or de facto life for crimes that occurred in their youth are Black.
+>>>>>>> 9ee5eaf4067fb94768bc364f8c1d5af35dd3fc9a
 blacklife <- length(IDOC$life[IDOC$life %in% c("De Facto", 1) & IDOC$Race=="Black"])/length(IDOC$life[IDOC$life %in% c("De Facto", 1)])
 blacklife
