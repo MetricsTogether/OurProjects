@@ -16,9 +16,12 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tnum)
 library(jsonlite)
 library(tidyverse)
-library(lubridate)
 library(tigris)
 library(stringr)
+library(data.table)
+library(lubridate)
+library(censusapi)
+library(sf)
 
 # login to tnum server
 creds <- "alison@metricstogether.com:brushfire"
@@ -26,9 +29,6 @@ ip <- "metrics.truenum.com:8080"
 tnum.authorize(ip=ip,creds=creds)
 
 #pull corrections data from TNUM server
-
-#data1 <- tnum.query(query="prop:Date-of-Birth or prop:Race or prop:Sentence-Years or prop:IDOC-number",max=120001)
-#data2 <- tnum.query(query="prop:Sentence-Date or prop:Holding-Offense or prop:",max=120001)
 
 subj <- tnum.getAllSubjects()
 subj <- tibble(subj=unlist(subj))
@@ -39,33 +39,11 @@ names(counties)="counties"
 
 data_tnum_og <- data.frame()
 
-start <- Sys.time()
-for (i in 3:23 ){ 
-  data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=200001))
-}
-
-end <- Sys.time()
-
-runtime <- end-start
-runtime
 
 start <- Sys.time()
-for (i in 24:33 ){ 
-  data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=200001))
+for (i in 2:102 ){ 
+  data_tnum_og <- rbind2(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=300001)[,1:13])
 }
-
-for (i in 34:41 ){ 
-  data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=200001))
-}
-
-for (i in 42:54 ){ 
-  data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=200001))
-}
-
-for (i in 54:102 ){ 
-  data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=200001))
-}
-data_tnum_og <- rbind(data_tnum_og, tnum.query(query=paste0("subj:*",counties[2,]),max=500001,start = 200001))
 
 end <- Sys.time()
 
@@ -112,7 +90,8 @@ d <- d %>%
          sdp=ifelse(`Sentence-Years`=="SDP",1,0),
          "Sentence Age" = year(d$`Sentence-Date`)-year(d$`Date-of-Birth`)) %>% select(-yeartrans)
 
-names(d) <- 
+names
+
 
 library(ggplot2)
 
@@ -122,21 +101,6 @@ ggplot(d) +
  scale_fill_hue(direction = 1) +
  theme_minimal()
 #tnum.getAllProperties()
-
-
-## add a new property to TNUM
-# wrte a loop that creates a tnum that looks like the other ones 
-# Example subject:"IL-DOC/prison:Dixon/A00147:inmate:county:Jasper"
-d_test <- d %>% select(`Parent-Institution`,`IDOC-number`,`Sentencing-County`,age)
-
-
-tnum.ingestDataFrame(df=d_test,subjectRoot = "IL-DOC/", subjectTerms = list(c("prison:","Parent-Institution"),c("/","IDOC-number"),c(":inmate:county:","Sentencing-County")),tag = "test",outfile = choose.files())
-
-
-
-# need prison name, inmate #, county
-#constant property
-
 
 
 ```
@@ -217,9 +181,9 @@ Here’s what we know about this group of individuals.
 
 ```{r Who We Serve}
 
-IDOC26 <- IDOC %>% filter(`Sentence Age`<27)
+d26 <- d %>% filter(`Sentence Age`<27)
 
-county_life <- IDOC26[IDOC26$life %in% c("De Facto", 1),]%>% group_by(`Sentencing County`,Race) %>% summarise(number=n()) %>% mutate(percent=(number/sum(number))*100)
+county_life <- d26[d26$life %in% c("De Facto", 1),]%>% group_by(`Sentencing County`,Race) %>% summarise(number=n()) %>% mutate(percent=(number/sum(number))*100)
 county_life2 <- left_join(county_life,ACS_IL[ACS_IL$year==2017,],by=c("Sentencing County"="county","Race"="Race"))
 county_life2 <- county_life2 %>% mutate(diff=percent-value)
 
