@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(root.dir = '/Restore Justice')
 
 library(readxl)
 library(tidyverse)
@@ -19,7 +20,7 @@ library(sf)
 
 
 
-# Funcions for data processing
+# Functions for data processing
 # These functions are used to clean ACS pulled data 
 
 yeargeog <- function(year,state,vars){
@@ -45,15 +46,15 @@ fips_to_acs <- function(data){
 
 
 ```{r Data Processing}
-IDOC <- read_xls("Restore Justice/June 2017 Prison Stock.xls",skip = 5)
+IDOC <- read_xls("March 2021 Prison Stock.xls",skip = 5)
 
 
 IDOC$yeartrans <- ifelse(grepl("^[[:digit:]]+$",IDOC$`Sentence Years`),IDOC$`Sentence Years`,NA)
 IDOC$yeartrans <- as.numeric(IDOC$yeartrans)
 
-#2017 requires a dob change in format
-IDOC$`Date of Birth` <- mdy(IDOC$`Date of Birth`)
-IDOC$`Sentence Date` <- mdy(IDOC$`Sentence Date`)
+##2017 requires a dob change in format
+#IDOC$`Date of Birth` <- mdy(IDOC$`Date of Birth`)
+#IDOC$`Sentence Date` <- mdy(IDOC$`Sentence Date`)
 
 IDOC <- IDOC %>% mutate(age=year(Sys.Date())-year(`Date of Birth`),
                         life=ifelse(`Sentence Years`=="LIFE",1,(ifelse(yeartrans>49,"De Facto",0))),
@@ -131,13 +132,6 @@ ACS_IL <- left_join(ACS_IL,IL_counties)
 ## Who We Serve
 
 
-In Illinois today, there are 2,625 people taken into custody before the age of 26 serving sentences of life and de facto life in state prisons. De facto life is defined by the United States Sentencing Commission as termed sentences longer than 40 years. These people represent about 1 percent (29,111) of Illinois’s prison population.
-
-Each case and person is unique, and few statements can describe all individuals serving extreme sentences. That said, knowing at a broad level who bears the burden of the state’s most extreme sentences helps us understand the issues, craft more nuanced policies, and build common ground for dialogue between communities, advocates, and legislators.
-
-Here’s what we know about this group of individuals.
-
-
 ```{r Who We Serve}
 
 IDOC26 <- IDOC %>% filter(`Sentence Age`<27)
@@ -154,21 +148,57 @@ county_life_sums <- distinct(left_join(county_life_sums,county_life2[c(1,8)]))
 ggplot()+
   geom_sf(data=IL_counties)+
   geom_sf(data=county_life2[county_life2$Race=="Black",], mapping=aes(fill=diff,geometry=geometry))+
-  geom_sf_text(data=county_life_sums,mapping = aes(label=sum,geometry=geometry),color="white")
-
+  geom_sf_text(data=county_life_sums,mapping = aes(label=sum,geometry=geometry),color="white")+
+  theme_minimal()
+  
+  
+  
+life26 <- length(IDOC26)
+  
+pop <- length(IDOC)
 ```
+
+
+In Illinois today, there are `life26` people taken into custody before the age of 26 serving sentences of life and de facto life in state prisons. De facto life is defined by the United States Sentencing Commission as termed sentences longer than 40 years. These people represent about 1 percent (`pop`) of Illinois’s prison population.
+
+Each case and person is unique, and few statements can describe all individuals serving extreme sentences. That said, knowing at a broad level who bears the burden of the state’s most extreme sentences helps us understand the issues, craft more nuanced policies, and build common ground for dialogue between communities, advocates, and legislators.
+
+Here’s what we know about this group of individuals.
 
 
 ## Who They Are
 
 Overwhelmingly, the people in Illinois serving life and de facto life for offenses that occurred before the age of 26 are young Black men from Cook and its neighboring counties. Figure 1 shows the distribution of sentences by race, compared with Illinois demographics.
 
-Eighty-three of Illinois’s 102 counties have sentenced at least one person to life or de facto life (among the people still serving these sentences) for an offense that occurred before the person’s 26th birthday. Sixty-five percent (1,706) of the people currently serving life or de facto life for crimes that occurred before they turned 26 are from Cook County. 
+```{r Who they Are 1}
+IDOC26_LifeDeFacto <- IDOC26[IDOC26$life %in% c("De Facto", 1),]
+summary <- IDOC26_LifeDeFacto  %>% group_by(Race) %>% summarise(value=n())
+pie_race <- IDOC26_LifeDeFacto %>% mutate(Race = recode(Race,
+                                                         "Asian"="Other",
+                                                        "American Indian"="Other",
+                                                        "Bi-Racial"="Other",
+                                                        "Hispanic"="Other",
+                                                        "Unknown"="Other",
+                                                        "NA"="Other"))
+pie_race <- pie_race %>% group_by(Race) %>% summarise(value=n())
 
-```{r Who they Are}
+library(scales)
+ggplot(pie_race)+
+  geom_bar(mapping=aes(x="",y=value,fill=Race),stat="identity")+
+  coord_polar("y", start=0)
+   # geom_text(aes(y = value/3 + c(0, cumsum(value)[-length(value)]), 
+   #          label = percent(value/100)), size=5)
+
 
 life_county_sentence <- length(unique(IDOC26$`Sentencing County`[IDOC26$life %in% c("De Facto", 1)]))
-length(IDOC26[IDOC26$life %in% c("De Facto", 1) & IDOC26$`Sentencing County`=="Cook",])/life_county_sentence
+cook_life <- length(IDOC26[IDOC26$life %in% c("De Facto", 1) & IDOC26$`Sentencing County`=="Cook",])/life_county_sentence
+cook_count <- length(IDOC26[IDOC26$life %in% c("De Facto", 1) & IDOC26$`Sentencing County`=="Cook",])
+```
+
+`life_county_sentence` of Illinois’s 102 counties have sentenced at least one person to life or de facto life (among the people still serving these sentences) for an offense that occurred before the person’s 26th birthday. `cook_life` percent (`cook_count`) of the people currently serving life or de facto life for crimes that occurred before they turned 26 are from Cook County. 
+
+```{r Who they Are 2}
+
 
 
 # About 96 percent of youth life and de facto life sentences are for homicide-related offenses. 
