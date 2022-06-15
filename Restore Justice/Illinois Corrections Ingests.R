@@ -3,11 +3,12 @@ library(censusapi)
 
 tnum.loadLibs()
 
-creds <- "alison@metricstogether.com:brushfire"
-ip <- "metrics.truenum.com:8080"
+creds <- "creds"
+ip <- "ip"
 tnum.authorize(ip=ip,creds=creds)
 
-tnum.deleteByQuery(query = "subj:*")
+##Do not run this. 
+#tnum.deleteByQuery(query = "subj:*")
 
 
 # Ingesting the IDOC Data
