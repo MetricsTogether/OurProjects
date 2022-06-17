@@ -1,10 +1,13 @@
 library(tnum)
 library(censusapi)
+library(tidyverse)
+library(tigris)
+library(jsonlite)
 
 tnum.loadLibs()
 
-creds <- "creds"
-ip <- "ip"
+creds <- "alison@metricstogether.com:brushfire"
+ip <- "metrics.truenum.com:8080"
 tnum.authorize(ip=ip,creds=creds)
 
 ##Do not run this. 
@@ -15,22 +18,45 @@ tnum.authorize(ip=ip,creds=creds)
 library(readxl)
 
 IDOC <- read_xls("March 2021 Prison Stock.xls",skip = 5)
+names(IDOC)[c(1,10,11)] <- c("ID Number","Projected Mandatory Supervised Release Date","Projected Discharge Date")
+IDOC$`Sentence Months` <- as.numeric(IDOC$`Sentence Months`)
+
+# function to rewrite wrong birthdates (lubridate)
+date_redo <- function(x, year=2022){
+  m <- year(x)
+  n <- year(x) %% 100
+  year(x) <- ifelse(m-year > 0, 1900+n, m)
+  x
+}
+IDOC$`Date of Birth` <- ymd(IDOC$`Date of Birth`)
+IDOC$`Date of Birth` <- date_redo(IDOC$`Date of Birth`)
+IDOC$`Current Admission Date` <- ymd(IDOC$`Current Admission Date`)
+IDOC$`Projected Mandatory Supervised Release Date` <- ymd(IDOC$`Projected Mandatory Supervised Release Date`)
+IDOC$`Projected Discharge Date` <- ymd(IDOC$`Projected Discharge Date`)
+IDOC$`Custody Date`<- ymd(IDOC$`Custody Date`)
+IDOC$`Sentence Date` <- ymd(IDOC$`Sentence Date`)
+
+
+
 template <- list(
-  c(paste0("Name of inmate $(IDOC #) at $(Parent Institution) in $(Sentencing County) is $(Name)"),"IDOC:2021:March"))
+  c(paste0("Name of inmate $(ID Number) at $(Parent Institution) in $(Sentencing County) county is $(Name)"),"IDOC:2021:March"))
+
+
 
 
 template_loop <- c()
-template_loop <- for (i in length(IDOC)){
-  template_loop[[(length(template_loop) + 1)]] <- c(paste0(names(IDOC)[i]," of inmate $(IDOC #) at $(Parent Institution) in $(Sentencing County) is $(",names(IDOC)[i],")"),"IDOC:2021:March")
-  i <- i+1
+for (j in 1:length(IDOC)){
+  template_loop[[(length(template_loop) + 1)]] <- c(paste0(names(IDOC)[j],
+                                                           " of inmate $(ID Number) in $(Parent Institution) prison in $(Sentencing County) county is $(",
+                                                           names(IDOC)[j],")")
+                                                    ,c("IDOC:2021:March"))
 }
   
-tnum.ingestDataFrame(head(IDOC),templates = template,
-                     outfile = "testIngest1.txt")
+tnum.ingestDataFrame(IDOC,template = template_loop,"testIngest2.txt")
 #	IL-DOC/prison:Big_Muddy_River/A02008:inmate:county:Cook
 
 
-# functions for ACVVS data cleaning
+# functions for ACS data cleaning
 yeargeog <- function(year,state,vars){
   data.frame(year = year, 
              getCensus(name="acs/acs5",
@@ -51,7 +77,7 @@ fips_to_acs <- function(data){
 
 
 
-key <- "095f223bd2d9dd69b8546222bde6c171c540da9b"
+key <- "CENSUS_KEY"
 
 race_vars <- c("B01001A_001E","B01001B_001E","B01001C_001E","B01001D_001E","B01001E_001E","B01001F_001E","B01001G_001E","B01001H_001E","B01001I_001E")
 
@@ -76,7 +102,7 @@ acs5_race <- rbind(acs5_race_17,acs5_race_20)
 acs5_race <- fips_to_acs(acs5_race)
 acs5_race <- acs5_race %>% select (year,state_name,county.y,"B01001A_001E","B01001B_001E","B01001C_001E","B01001D_001E","B01001E_001E","B01001F_001E","B01001G_001E","B01001H_001E","B01001I_001E" )
 
-names(acs5_race) <- c("year","state","county", "total", 
+names(acs5_race) <- c("year","state","county", 
                       "white",
                       "black",
                       "american indian or alaska native",
@@ -89,7 +115,7 @@ names(acs5_race) <- c("year","state","county", "total",
 )
 templates <- c()
 
-for (i in 4:length(acs5_race)-1) {
+for (i in 5:length(acs5_race)-1) {
   templates[[(length(templates) + 1)]] <- c(paste0(" $(county) $(state) has ",names(acs5_race)[i],  " population = $(",names(acs5_race)[i],")"),"USFederal:ACS5:$(year)")
   i <- i+1
 }

@@ -41,8 +41,8 @@ data_tnum_og <- data.frame()
 
 
 start <- Sys.time()
-for (i in 2:102 ){ 
-  data_tnum_og <- rbind2(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=300001)[,1:13])
+for (i in c(4:6,12) ){ 
+  data_tnum_og <- rbind2(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=300001))
 }
 
 end <- Sys.time()
