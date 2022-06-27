@@ -32,24 +32,26 @@ tnum.authorize(ip=ip,creds=creds)
 
 subj <- tnum.getAllSubjects()
 subj <- tibble(subj=unlist(subj))
-counties <- tibble(unlist(str_split(subj$subj,"county:")))
-c_len <- sapply(counties,str_length)
-counties <- distinct(counties[c_len<20,])
+counties <- as.data.frame(unlist(str_match(subj$subj,"county:\\s*(.*?)\\s*/")))
+counties <- tibble(unique(counties[,2]))
 names(counties)="counties"
 
-data_tnum_og <- data.frame()
+data_tnum <- data.frame()
 
-
+#length(counties$counties)
 start <- Sys.time()
-for (i in c(4:6,12) ){ 
-  data_tnum_og <- rbind2(data_tnum_og, tnum.query(query=paste0("subj:*",counties[i,]),max=300001))
+for (i in c(1:length(counties$counties))){
+ t <- tnum.query(query=paste0("IDOC:2021:March* and subj:*",counties[i,],"*"),max=300001)
+ t <- t %>%
+   mutate(value=ifelse(t$`value-type`=="TsNumber",t$si_value$string,t$value)) %>%
+   select(date,html_varname,server,author,subject,wrapper,property,id,`value-type`,value)
+  data_tnum <- bind_rows(data_tnum, t)
 }
 
 end <- Sys.time()
 
 runtime <- end-start
 runtime
-
 
 
 data_tnum_og <- data_tnum_og %>% mutate(early=str_match(data_tnum_og$subject, "/\\s*(.*?)\\:inmate")) %>% mutate(identifier=substr(early,str_length(early)-5,str_length(early))[,2])

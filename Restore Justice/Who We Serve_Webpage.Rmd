@@ -149,7 +149,12 @@ ggplot()+
   geom_sf(data=IL_counties)+
   geom_sf(data=county_life2[county_life2$Race=="Black",], mapping=aes(fill=diff,geometry=geometry))+
   geom_sf_text(data=county_life_sums,mapping = aes(label=sum,geometry=geometry),color="white")+
-  theme_minimal()
+  theme_classic()+
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+        axis.text.y=element_blank(),axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())+
+  labs(fill="Percent Difference (Black)")
   
   
   

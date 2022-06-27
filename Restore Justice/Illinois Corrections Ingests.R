@@ -13,12 +13,15 @@ tnum.authorize(ip=ip,creds=creds)
 ##Do not run this. 
 #tnum.deleteByQuery(query = "subj:*")
 
+test <- tnum.query(query = "subj:*birth",max=1000)
+tnum.deleteByQuery(query ="subj:*birth" )
+
 
 # Ingesting the IDOC Data
 library(readxl)
 
 IDOC <- read_xls("March 2021 Prison Stock.xls",skip = 5)
-names(IDOC)[c(1,10,11)] <- c("ID Number","Projected Mandatory Supervised Release Date","Projected Discharge Date")
+names(IDOC)[c(1,3,10,11)] <- c("ID Number","Birth Date","Projected Mandatory Supervised Release Date","Projected Discharge Date")
 IDOC$`Sentence Months` <- as.numeric(IDOC$`Sentence Months`)
 
 # function to rewrite wrong birthdates (lubridate)
@@ -28,8 +31,8 @@ date_redo <- function(x, year=2022){
   year(x) <- ifelse(m-year > 0, 1900+n, m)
   x
 }
-IDOC$`Date of Birth` <- ymd(IDOC$`Date of Birth`)
-IDOC$`Date of Birth` <- date_redo(IDOC$`Date of Birth`)
+IDOC$`Birth Date` <- ymd(IDOC$`Birth Date`)
+IDOC$`Birth Date` <- date_redo(IDOC$`Birth Date`)
 IDOC$`Current Admission Date` <- ymd(IDOC$`Current Admission Date`)
 IDOC$`Projected Mandatory Supervised Release Date` <- ymd(IDOC$`Projected Mandatory Supervised Release Date`)
 IDOC$`Projected Discharge Date` <- ymd(IDOC$`Projected Discharge Date`)
@@ -39,21 +42,31 @@ IDOC$`Sentence Date` <- ymd(IDOC$`Sentence Date`)
 
 
 template <- list(
-  c(paste0("Name of inmate $(ID Number) at $(Parent Institution) in $(Sentencing County) county is $(Name)"),"IDOC:2021:March"))
+  c("Name of inmate $(ID Number) in $(Parent Institution) prison in $(Sentencing County) county is $(Name)",
+    "IDOC:2021:March, test"))
+
+tnum.ingestDataFrame(head(IDOC),template = template,"testIngest3.txt")
 
 
 
-
-template_loop <- c()
+  template_loop <- c()
 for (j in 1:length(IDOC)){
   template_loop[[(length(template_loop) + 1)]] <- c(paste0(names(IDOC)[j],
                                                            " of inmate $(ID Number) in $(Parent Institution) prison in $(Sentencing County) county is $(",
                                                            names(IDOC)[j],")")
-                                                    ,c("IDOC:2021:March"))
+                                                    ,"IDOC:2021:March,ingest:June20")
 }
   
-tnum.ingestDataFrame(IDOC,template = template_loop,"testIngest2.txt")
+tnum.ingestDataFrame(IDOC,template = template_loop)
+
+
+
 #	IL-DOC/prison:Big_Muddy_River/A02008:inmate:county:Cook
+## check what was ingested
+file <- read.delim("testIngest2.txt")
+`%notin%` <- negate(`%in%`)
+newfile <- file %notin% data_tnum_og$wrapper
+
 
 
 # functions for ACS data cleaning
@@ -77,7 +90,7 @@ fips_to_acs <- function(data){
 
 
 
-key <- "CENSUS_KEY"
+key <- "095f223bd2d9dd69b8546222bde6c171c540da9b"
 
 race_vars <- c("B01001A_001E","B01001B_001E","B01001C_001E","B01001D_001E","B01001E_001E","B01001F_001E","B01001G_001E","B01001H_001E","B01001I_001E")
 
@@ -120,6 +133,5 @@ for (i in 5:length(acs5_race)-1) {
   i <- i+1
 }
 
-# do not run until you're ready, this will go straight to the tnum space
 tnum.ingestDataFrame(acs5_race,templates,"testIngest1.txt")
 
