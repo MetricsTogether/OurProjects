@@ -6,8 +6,8 @@ library(jsonlite)
 
 tnum.loadLibs()
 
-creds <- "alison@metricstogether.com:brushfire"
-ip <- "metrics.truenum.com:8080"
+creds <- ""
+ip <- ""
 tnum.authorize(ip=ip,creds=creds)
 
 ##Do not run this. 
