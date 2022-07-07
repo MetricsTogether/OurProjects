@@ -68,7 +68,7 @@ IDOC <- IDOC %>% mutate(age=year(Sys.Date())-year(`Date of Birth`),
 
 ```{r ACS pull}
 #replace with a local census key 
-key <- "095f223bd2d9dd69b8546222bde6c171c540da9b"
+key <- ""
 
 race_vars <- c("B01001A_001E","B01001B_001E","B01001C_001E","B01001D_001E","B01001E_001E","B01001F_001E","B01001G_001E","B01001H_001E","B01001I_001E")
 
