@@ -24,8 +24,8 @@ library(censusapi)
 library(sf)
 
 # login to tnum server
-creds <- "alison@metricstogether.com:brushfire"
-ip <- "metrics.truenum.com:8080"
+creds <- ""
+ip <- ""
 tnum.authorize(ip=ip,creds=creds)
 
 #pull corrections data from TNUM server
@@ -110,7 +110,7 @@ ggplot(d) +
 
 ```{r ACS pull}
 #replace with a local census key 
-key <- "095f223bd2d9dd69b8546222bde6c171c540da9b"
+key <- ""
 
 race_vars <- c("B01001A_001E","B01001B_001E","B01001C_001E","B01001D_001E","B01001E_001E","B01001F_001E","B01001G_001E","B01001H_001E","B01001I_001E")
 
